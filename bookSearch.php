@@ -1,33 +1,69 @@
 <?php
 	
 	include('config.php');
+	define('rowperpage', 2);
 	try{
 	 $db=getdb();
-
-	 if(!empty($_POST['Search'])){
+	 
+	 $book='';$author='';$input="";$searchby="";
+	 if(!empty($_POST['query'])){
+	 	$input=$_POST['query'];
 	 	if($_POST['searchby']=="Book Name"){
-	 		if($_POST['query']!=''){
-	 			$book=$_POST['query'];
-	 			$stmt=$db->prepare("SELECT * FROM books WHERE name=:bookname");
-	 			$stmt->bindParam(':bookname',$book);
-
-	 		}
-	 		else{
-	 			$stmt=$db->prepare("SELECT * FROM books");
-	 		}
+	 			$searchby="Book Name";
+	 			$book='%'.$_POST['query'].'%';
+	 			$sql="SELECT * FROM books WHERE name LIKE :bookname";
+	 			$stmt=$db->prepare($sql);
+	 			$stmt->bindParam(':bookname',$book,PDO::PARAM_STR);
 	 	}
 	 	else if($_POST['searchby']=="Author Name"){
-	 		if($_POST['query']!=''){
-	 			$author=$_POST['query'];
-	 			$stmt=$db->prepare("SELECT * FROM books WHERE author=:authorname");
-	 			$stmt->bindParam(':authorname',$author);
-	 		}
-	 		else{
-	 			$stmt=$db->prepare("SELECT * FROM books");
-	 		}
+	 			$searchby="Author Name";
+	 			$author='%'.$_POST['query'].'%';
+	 			$sql="SELECT * FROM books WHERE author LIKE :authorname";
+	 			$stmt=$db->prepare($sql);
+	 			$stmt->bindParam(':authorname',$author,PDO::PARAM_STR);
 	 	}
-	 	$stmt->execute();
+	 	
 	 }
+
+	 else{
+	 	$sql="SELECT * FROM books";
+	 	$stmt=$db->prepare($sql);
+	 }
+	 
+	 	$stmt->execute();
+	 	$rows=$stmt->rowCount();
+	 	$pagetab_html="";
+	 	$page=1;
+	 	$start=0;
+	 	if(!empty($_POST['page'])){
+	 		$page=$_POST['page'];
+	 		$start=($page-1)*rowperpage;
+	 	}
+
+	 	
+	 	if($rows>0){
+	 		$pagetab_html="<div style='text-align:center;margin:20px 0px;'>";
+	 		$pagecount=ceil($rows/rowperpage);
+	 		if($pagecount>1){
+	 			for($i=1;$i<=$pagecount;$i++){
+	 				if($i==$page){
+	 					$pagetab_html.='<input type="submit" name="page" value="' . $i . '" class="btn-page current" />';
+	 				}
+	 				else{
+		 				$pagetab_html.='<input type="submit" name="page" value="' . $i . '" class="btn-page" />';
+	 				}
+	 			}
+	 		}
+	 		$pagetab_html.='</div>';
+	 	}
+	 	
+
+	 	$que=$sql." LIMIT ".$start.",".rowperpage;
+	 	$stmtperpage=$db->prepare($que);
+	 	if($book!='')$stmtperpage->bindParam(':bookname',$book,PDO::PARAM_STR);
+	 	if($author!='')$stmtperpage->bindParam(':authorname',$author,PDO::PARAM_STR);
+	 	$stmtperpage->execute();
+	 
 	}
 	catch(PDOException $e){
 		echo "connection failed: ".$e->getMessage();
@@ -42,7 +78,7 @@
 	<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 	<script type="text/javascript" src="js/script.js"></script>
 </head>
-<body>
+<body onload="alterInput()">
 <div class="header" id="header">
 	<div class="img-container">
 		<img src="logo1.png" height="100px" width="100px">
@@ -53,7 +89,7 @@
 	</div>
 </div>
 <div class="navbar">
-	<a href="Home.html"><div class="tab">
+	<a href="Home.php"><div class="tab">
 		Home
 	</div></a>
 	<a href="Collection.html"><div class="tab hide-small">
@@ -94,26 +130,26 @@
 <div>
 	<div class="search-form">
 		<h2 align="center">Collection of Books</h2>
-		<form name="sform" method="post" onreset="alterInput()" action="">
+		<form name="sform" method="post" action="">
 			<table align="center">
 				<tr>
 					<td><label for="searchby">Search By : </label></td>
-					<td><input type="radio" name="searchby" value="Book Name" onclick="alterInput()" checked>Book Name</td>
+					<td><input type="radio" name="searchby" value="Book Name" onclick="alterInput()" <?php if($searchby!="Author Name")echo "checked"; ?>>Book Name</td>
 				</tr>
 				<tr>
 					<td></td>
-					<td><input type="radio" onclick="alterInput()" name="searchby" value="Author Name">Author Name</td>
+					<td><input type="radio" onclick="alterInput()" name="searchby" value="Author Name" <?php if($searchby=="Author Name")echo "checked"; ?>>Author Name</td>
 				</tr>
 				<tr>
 					<td><label id="searchTag">Book Name : </label></td>
-					<td><input type="text" name="query"></td>
+					<td><input type="text" name="query" value="<?php echo $input;?>"></td>
 				</tr>
 				<tr>
 					<td></td>
 					<td><input type="submit" name="Search" value="Search"></td>
 				</tr>
 			</table>
-		</form>
+		
 	</div>
 	<div id="collection" class="data-table" align="center">
 		<table>
@@ -129,8 +165,8 @@
 			</thead>
 			<tbody>
 				<?php
-				if(!empty($_POST['Search'])){
-					while($row=$stmt->fetch(PDO::FETCH_BOTH)){
+				
+					while($row=$stmtperpage->fetch(PDO::FETCH_BOTH)){
 						echo '<tr>
 						<td>'.$row['bookid'].'</td>
 						<td>'.$row['name'].'</td>
@@ -140,10 +176,11 @@
 						<td>'.$row['status'].'</td>
 						</tr>';
 					}
-				}
+				
 				?>
 			</tbody>
 		</table>
+		<?php echo $pagetab_html; ?></form>
 	</div>
 </div>
 
