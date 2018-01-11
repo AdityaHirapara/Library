@@ -100,6 +100,7 @@
 		<h2>Collection</h2><hr>
 		<p>The Library subscribes to 156 current journals. The Library has a rich collection of books on science and technology including chemistry, mathematics, physics, chemical engineering, civil engineering, mechanical and production engineering, computer science, electrical and electronics engineering, biochemical and biomedical engineering. Besides, Library also has a good collection in the areas of humanities and social sciences. Besides General Collection, the Library has segregated specialized collection having separate collection codes.The Library also accommodates a literary section having a good collection of novels, philosophy and history related books.</p>
 	</div>
+	<!--hello-->
 </div>
 <div class="sidebar">
 	<div class="authority">
